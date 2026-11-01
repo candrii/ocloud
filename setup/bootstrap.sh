@@ -23,8 +23,8 @@ oci() { "$OCI_BIN" --profile DEFAULT --auth security_token "$@" | tr -d '\r'; }
 # Prints a value, or fails with the name of what is missing.
 need() { [ -n "$2" ] && [ "$2" != "null" ] || { echo "Could not get $1" >&2; exit 1; }; echo "$2"; }
 scim_find() { # <resource> <filter>
-  oci raw-request --http-method GET --target-uri "$domain_url/admin/v1/$1?filter=$2&attributes=id,name" \
-    --query 'data.Resources[0].[id,name] | join(`" "`, @)' --raw-output 2>/dev/null || true
+  oci raw-request --http-method GET --target-uri "$domain_url/admin/v1/$1?filter=$2" \
+    --query 'data.Resources[0].[id,name || `""`] | join(`" "`, @)' --raw-output 2>/dev/null || true
 }
 scim_post() { # <resource> <body> <jmespath>
   oci raw-request --http-method POST --target-uri "$domain_url/admin/v1/$1" --request-body "$2" \
@@ -91,6 +91,9 @@ if [ -z "${app_id:-}" ]; then
   need "app" "$app_id" >/dev/null
   oci raw-request --http-method PUT --target-uri "$domain_url/admin/v1/AppStatusChanger/$app_id" \
     --request-body '{"schemas":["urn:ietf:params:scim:schemas:oracle:idcs:AppStatusChanger"],"active":true}' >/dev/null
+else
+  client_secret=$(oci raw-request --http-method GET --target-uri "$domain_url/admin/v1/Apps/$app_id?attributes=clientSecret" \
+    --query 'data."clientSecret"' --raw-output)
 fi
 
 echo "Identity propagation trust"
@@ -109,9 +112,6 @@ set_secret OCI_COMPARTMENT "$compartment"
 set_secret OCI_SUBNET "$subnet"
 set_secret OCI_CLIENT_ID "$client_id"
 set_secret SSH_PUBLIC_KEY "$(cat "$SSH_KEY")"
-# OCI only returns the secret when the app is created.
-if [ -n "$client_secret" ]; then
-  set_secret OCI_CLIENT_SECRET "$client_secret"
-fi
+set_secret OCI_CLIENT_SECRET "$(need "client secret" "$client_secret")"
 
 echo "Done."
