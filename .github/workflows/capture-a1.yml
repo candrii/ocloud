@@ -33,7 +33,7 @@ jobs:
           OCI_REGION: ${{ secrets.OCI_REGION }}
         run: scripts/oci-oidc-login.sh
 
-      - name: Try to launch the instance
+      - name: Launch missing instances
         env:
           OCI_TENANCY: ${{ secrets.OCI_TENANCY }}
           OCI_COMPARTMENT: ${{ secrets.OCI_COMPARTMENT }}
