@@ -24,7 +24,7 @@ Together these use the whole Always Free A1 allowance of 4 OCPU, 24 GB and 200 G
 
 There are no OCI API keys. Each run requests a GitHub OIDC token and exchanges it at the identity domain for an OCI session token bound to a key pair generated for that run.
 
-- The trust accepts tokens only from GitHub's issuer, with audience `ocloud-oci` and subject `repo:candrii/ocloud:ref:refs/heads/main`.
+- The trust accepts tokens only from GitHub's issuer, with audience `ocloud-oci` and this repository's `main` branch as the subject. It uses GitHub's immutable subject format, `repo:candrii@<owner-id>/ocloud@<repo-id>:ref:refs/heads/main`.
 - A matching token maps to the service user `ocloud-capture`, which has no password or API keys.
 
 ## Deploying the infrastructure

@@ -1,6 +1,16 @@
+data "github_user" "owner" {
+  username = var.github_owner
+}
+
+data "github_repository" "ocloud" {
+  name = var.github_repository
+}
+
 locals {
-  github_issuer   = "https://token.actions.githubusercontent.com"
-  github_subject  = "repo:${var.github_owner}/${var.github_repository}:ref:refs/heads/main"
+  github_issuer = "https://token.actions.githubusercontent.com"
+  # GitHub's immutable subject format: the numeric IDs stop a renamed or re-registered
+  # owner or repository from matching.
+  github_subject  = "repo:${var.github_owner}@${data.github_user.owner.id}/${var.github_repository}@${data.github_repository.ocloud.repo_id}:ref:refs/heads/main"
   github_audience = "ocloud-oci"
   domain_url      = trimsuffix(data.oci_identity_domains.default.domains[0].url, ":443")
 }
