@@ -26,6 +26,8 @@ response=$(curl -sS "$OCI_DOMAIN_URL/oauth2/v1/token" \
 upst=$(jq -r '.token // empty' <<<"$response")
 if [ -z "$upst" ]; then
   echo "Token exchange failed: $(jq -r '"\(.error) \(.error_description)"' <<<"$response")"
+  # The payload claims are not secret; the signature is what makes the token usable.
+  echo "GitHub token subject: $(cut -d. -f2 <<<"$github_jwt" | tr '_-' '/+' | base64 -d 2>/dev/null | jq -r .sub)"
   exit 1
 fi
 echo "::add-mask::$upst"
