@@ -27,3 +27,7 @@ provider "oci" {
 provider "github" {
   owner = var.github_owner
 }
+
+locals {
+  name = "ocloud"
+}
