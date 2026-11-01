@@ -16,13 +16,18 @@ github_jwt=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN
   "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=ocloud-oci" | jq -r .value)
 echo "::add-mask::$github_jwt"
 
-upst=$(curl -sS --fail-with-body "$OCI_DOMAIN_URL/oauth2/v1/token" \
+response=$(curl -sS "$OCI_DOMAIN_URL/oauth2/v1/token" \
   -u "$OCI_CLIENT_ID:$OCI_CLIENT_SECRET" \
   --data-urlencode 'grant_type=urn:ietf:params:oauth:grant-type:token-exchange' \
   --data-urlencode 'requested_token_type=urn:oci:token-type:oci-upst' \
   --data-urlencode "public_key=$public_key" \
   --data-urlencode "subject_token=$github_jwt" \
-  --data-urlencode 'subject_token_type=jwt' | jq -r .token)
+  --data-urlencode 'subject_token_type=jwt')
+upst=$(jq -r '.token // empty' <<<"$response")
+if [ -z "$upst" ]; then
+  echo "Token exchange failed: $(jq -r '"\(.error) \(.error_description)"' <<<"$response")"
+  exit 1
+fi
 echo "::add-mask::$upst"
 
 printf '%s' "$upst" > "$dir/token"
