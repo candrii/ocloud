@@ -1,0 +1,43 @@
+name: Capture A1
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # request the GitHub OIDC token exchanged for an OCI UPST
+  actions: write # disable this workflow once the instance exists
+
+concurrency:
+  group: capture-a1
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OCI CLI
+        run: pipx install oci-cli==3.95.0
+
+      - name: Log in to OCI with OIDC
+        env:
+          OCI_DOMAIN_URL: ${{ secrets.OCI_DOMAIN_URL }}
+          OCI_CLIENT_ID: ${{ secrets.OCI_CLIENT_ID }}
+          OCI_CLIENT_SECRET: ${{ secrets.OCI_CLIENT_SECRET }}
+          OCI_TENANCY: ${{ secrets.OCI_TENANCY }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+        run: scripts/oci-oidc-login.sh
+
+      - name: Try to launch the instance
+        env:
+          OCI_TENANCY: ${{ secrets.OCI_TENANCY }}
+          OCI_COMPARTMENT: ${{ secrets.OCI_COMPARTMENT }}
+          OCI_SUBNET: ${{ secrets.OCI_SUBNET }}
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/capture-a1.sh
