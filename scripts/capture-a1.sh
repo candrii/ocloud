@@ -58,10 +58,11 @@ if [ "${#missing[@]}" -gt 0 ]; then
 fi
 
 if [ "${#missing[@]}" -gt 0 ]; then
-  echo "Still missing ${#missing[@]}; will retry on the next schedule."
+  echo "Still missing ${#missing[@]}; will retry."
   exit 0
 fi
 
 echo "All instances exist."
+echo "done=true" >> "$GITHUB_OUTPUT"
 gh workflow disable capture-a1.yml --repo "$GITHUB_REPOSITORY"
 echo "Workflow disabled."

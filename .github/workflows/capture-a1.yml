@@ -1,14 +1,16 @@
 name: Capture A1
 
 on:
+  # GitHub often skips scheduled runs, so each run queues the next one. The schedule only
+  # restarts the chain if it breaks.
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "17,47 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write # request the GitHub OIDC token exchanged for an OCI UPST
-  actions: write # disable this workflow once the instance exists
+  actions: write # queue the next run, and disable this workflow once all instances exist
 
 concurrency:
   group: capture-a1
@@ -17,7 +19,7 @@ concurrency:
 jobs:
   capture:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +36,8 @@ jobs:
         run: scripts/oci-oidc-login.sh
 
       - name: Launch missing instances
+        id: launch
+        timeout-minutes: 5
         env:
           OCI_TENANCY: ${{ secrets.OCI_TENANCY }}
           OCI_COMPARTMENT: ${{ secrets.OCI_COMPARTMENT }}
@@ -41,3 +45,13 @@ jobs:
           SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
           GH_TOKEN: ${{ github.token }}
         run: scripts/capture-a1.sh
+
+      # Also runs after a failure, so a brief error can't end the capture. Cancelling a run
+      # or disabling the workflow stops the chain.
+      - name: Queue the next attempt
+        if: ${{ !cancelled() && steps.launch.outputs.done != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 240
+          gh workflow run capture-a1.yml --repo "$GITHUB_REPOSITORY" --ref main

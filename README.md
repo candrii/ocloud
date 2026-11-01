@@ -1,6 +1,6 @@
 # ocloud
 
-Four Always Free Ampere A1 instances in OCI `us-chicago-1`. Terraform deploys everything they depend on. A scheduled GitHub Actions workflow then keeps trying to launch whichever instances are missing, because A1 capacity is often unavailable, and disables itself once all four exist.
+Four Always Free Ampere A1 instances in OCI `us-chicago-1`. Terraform deploys everything they depend on. A GitHub Actions workflow then keeps trying to launch whichever instances are missing, because A1 capacity is often unavailable, and disables itself once all four exist.
 
 | Setting | Value |
 | --- | --- |
@@ -8,9 +8,17 @@ Four Always Free Ampere A1 instances in OCI `us-chicago-1`. Terraform deploys ev
 | Shape | `VM.Standard.A1.Flex`, 1 OCPU, 6 GB each |
 | Image | Latest Canonical Ubuntu 24.04 aarch64 |
 | Boot volume | 50 GB each |
-| Schedule | Every 5 minutes, trying each availability domain |
+| Attempts | About every 5 minutes, trying each availability domain |
 
 Together these use the whole Always Free A1 allowance of 4 OCPU, 24 GB and 200 GB of block storage.
+
+## How the retries work
+
+GitHub often skips or delays scheduled workflows, so the retries don't rely on them. Each run waits four minutes and then queues the next with `workflow_dispatch`. The schedule, at minutes 17 and 47 of each hour, only restarts the chain if it breaks.
+
+A run that fails still queues the next one, so a persistent error shows up as repeated failed runs in the Actions tab.
+
+To stop the retries, run `gh workflow disable capture-a1.yml`.
 
 ## What Terraform deploys
 
